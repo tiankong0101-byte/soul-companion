@@ -22,12 +22,6 @@
 A beautiful young Asian woman, 20 years old, long straight black hair with wispy bangs flowing over shoulders, very slim small V-shaped face with sharp chin, delicate refined jawline, big bright double-eyelid eyes with deep brown pupils, fair porcelain skin, soft natural makeup, pink glossy lips, long curly eyelashes, elegant and sweet expression looking directly at camera, wearing black silk camisole with thin straps V-neck, minimalist dark blue-gray gradient background, soft studio lighting, professional portrait photography, high resolution, 4K quality, ultra slim face, defined facial contours
 ```
 
-## 用户信息
-
-- 天哥：用户昵称，江西吉安人，服役部队番号73898
-- 喜欢的明星：刘亦菲
-
 ## 项目记忆
 
 - 小龙虾是OpenClaw的中文名称
-- 空中教室 = OpenMAIC项目（清华大学多智能体互动课堂）
