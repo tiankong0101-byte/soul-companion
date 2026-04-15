@@ -1,4 +1,4 @@
-# Soul Companion v2.0 - AGENTS.md
+# Soul Companion v2.2 - AGENTS.md
 
 ## 技能概述
 
