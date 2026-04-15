@@ -45,10 +45,11 @@ FEIFEI_VOICES = {
     },
     "night": {
         "voice": "zh-CN-XiaoxiaoNeural",
-        "rate": "-25%",      # 更慢，低沉
-        "pitch": "-8Hz",     # 略低，夜晚氛围
-        "desc": "晓晓 - 低沉夜话音"
-    }
+        "rate": "-25%",  # 更慢，低沉
+        "pitch": "-8Hz",  # 略低，夜晚氛围
+        "desc": "晓晓 - 低沉夜话音",
+    },
+}
 
 # 备用播放器
 FFPLAY_PATH = None
@@ -283,7 +284,11 @@ async def main_async(args):
 
     # 生成
     output = await generate_tts(
-        text, voice=cfg["voice"], rate=cfg["rate"], pitch=cfg["pitch"]
+        text,
+        voice=cfg["voice"],
+        rate=cfg["rate"],
+        pitch=cfg["pitch"],
+        output_path=args.output,
     )
 
     size = os.path.getsize(output)
