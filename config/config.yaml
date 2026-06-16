@@ -1,0 +1,73 @@
+# ============================================================
+# Soul Companion v4.0 — 统一主配置
+# 菲菲的灵魂伴侣系统配置
+# ============================================================
+
+app:
+  name: "菲菲 Soul Companion"
+  version: "4.0.0"
+  host: "0.0.0.0"
+  port: 5000
+  debug: false
+
+server:
+  secret_key: "soul-companion-change-me-in-production"
+  static_folder: "../web"
+  cors_origins: ["*"]
+
+llm:
+  # LLM 配置文件路径（相对于项目根目录）
+  config_file: "config/llm.yaml"
+  # 降级链：按优先级依次尝试
+  fallback_chain: ["ollama", "openai"]
+  # 全局超时（秒）
+  timeout: 30
+  # 默认生成参数
+  defaults:
+    max_tokens: 2048
+    temperature: 0.8
+
+memory:
+  enabled: true
+  db_path: "data/memory.db"
+  embedding_provider: "local"   # local | openai
+  embedding_model: "all-MiniLM-L6-v2"
+  max_context_turns: 20
+  auto_save: true
+
+voice:
+  tts:
+    provider: "edge-tts"
+    voice: "zh-CN-XiaoyiNeural"
+    rate: "+0%"
+    volume: "+0%"
+    pitch: "+0Hz"
+  asr:
+    provider: "funasr"          # funasr | whisper
+    model: "paraformer-zh"
+    language: "zh"
+
+live2d:
+  enabled: true
+  model_path: "live2d/models"
+  # 表情映射
+  emotion_map:
+    happy: "happy"
+    sad: "sad"
+    angry: "angry"
+    surprised: "surprised"
+    neutral: "normal"
+    love: "love"
+    shy: "shy"
+    gentle: "gentle"
+
+vision:
+  enabled: true
+  provider: "openai"            # 使用多模态 LLM
+  max_image_size: 1024          # 图片最大边长
+
+safety:
+  enabled: true
+  hotline: "400-161-9995"       # 全国心理援助热线
+  # L4 风险关键词触发
+  l4_keywords: ["自杀", "不想活", "想死", "结束生命", "活不下去"]

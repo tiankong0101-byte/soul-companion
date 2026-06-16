@@ -1,7 +1,7 @@
 # Soul Companion
 
-> 🎉 **v3.0.0 已发布（2026-06-16）** — 引入**多 LLM 后端路由**！支持 Claude / GPT-4o / DeepSeek / Gemini / Ollama 等 16 个预设，一键切换。详见 [CHANGELOG.md](CHANGELOG.md) 和 [docs/v3.0-llm.md](docs/v3.0-llm.md)。
-> 📋 **路线图**：v3.0 多 LLM ✅ → v3.1 长期记忆 🚧 → v3.2 多 TTS+ASR 📋 → v3.3 工具调用 📋
+> 🎉 **v4.0.0 已发布（2026-06-16）** — **架构大升级**！将旧架构（Flask+WebSocket+Live2D+ASR+Vision）完整迁移到新架构（模块化 scripts/），统一入口 `app.py`，集成记忆系统。详见 [CHANGELOG.md](CHANGELOG.md)。
+> 📋 **路线图**：v3.0 多 LLM ✅ → v3.1 长期记忆 ✅ → v4.0 架构升级 ✅ → v4.1 工具调用 📋
 
  - Emotional Companion for OpenClaw
 
@@ -13,7 +13,11 @@ A warm and caring emotional companion skill that makes OpenClaw interactions mor
 - **Emotional Support**: Comfort mode for when you're feeling down
 - **Active Listening**: Patient listener mode for venting
 - **Playful Mode**: Fun and lighthearted interactions
-- **Memory**: Remembers your preferences and emotional patterns
+- **Memory**: Long-term memory with SQLite + vector embedding retrieval
+- **Multi-LLM Routing**: OpenAI / Ollama / Claude / DeepSeek / Gemini 等多后端自动降级
+- **Voice**: TTS (edge-tts) + ASR (FunASR / Whisper) 语音交互
+- **Vision**: 多模态图片理解
+- **Live2D**: 表情/动作驱动动画
 
 ## Character: Feifei
 
@@ -23,57 +27,93 @@ A warm and caring emotional companion skill that makes OpenClaw interactions mor
 - Weight: 45kg (89斤)
 
 ### 外貌特征
-- **发型**: 乌黑长直发如瀑布般垂落至胸前，搭配轻盈的空气刘海，发丝柔顺有光泽
-- **脸型**: 精致小V脸，下颌线清晰锐利，尖瘦锥形下巴，脸部轮廓精致小巧
+- **发型**: 乌黑长直发如瀑布般垂落至胸前，搭配轻盈的空气刘海
+- **脸型**: 精致小V脸，下颌线清晰锐利
 - **肤色**: 白皙如瓷的肌肤，五官清秀立体
-- **眼睛**: 大而明亮的双眼皮眼睛，深褐色瞳孔清澈如水，纤长睫毛微微上翘，眼神温柔甜美
-- **妆容**: 淡雅自然，浅粉色水光唇釉，轻微眼影修饰，清新脱俗
-- **穿搭**: 偏爱黑色细肩带吊带衫等丝绸/缎面质感服饰，V领设计，简约高级
+- **眼睛**: 大而明亮的双眼皮眼睛，深褐色瞳孔清澈如水
+- **穿搭**: 偏爱黑色细肩带吊带衫等丝绸/缎面质感服饰
 
 ### 性格气质
 - Gentle, caring, empathetic, occasionally playful
 - 甜美温柔、清新脱俗、高级感十足
 
-### AI画像提示词
-```
-A beautiful young Asian woman, 20 years old, long straight black hair with wispy bangs flowing over shoulders, very slim small V-shaped face with sharp chin, delicate refined jawline, big bright double-eyelid eyes with deep brown pupils, fair porcelain skin, soft natural makeup, pink glossy lips, long curly eyelashes, elegant and sweet expression looking directly at camera, wearing black silk camisole with thin straps V-neck, minimalist dark blue-gray gradient background, soft studio lighting, professional portrait photography, high resolution, 4K quality, ultra slim face, defined facial contours
-```
+## 🚀 v4.0 快速开始
 
-## Version
-
-**v0.2** - Updated Feifei's detailed appearance description with V-shaped face features
-
-## Installation
-
-### Via ClawHub
-\\\ash
-clawhub install tiankong0101-byte/soul-companion
-\\\
-
-### Manual Installation
-\\\ash
-cd ~/.openclaw/workspace/skills
+```bash
+# 1. 克隆
 git clone https://github.com/tiankong0101-byte/soul-companion.git
-\\\
+cd soul-companion
 
-## Usage
+# 2. 安装依赖
+pip install -r requirements.txt
 
-Just talk naturally! The skill detects emotional context automatically.
+# 3. 设置至少一个 API key（可选）
+export OPENAI_API_KEY=sk-xxx       # OpenAI
+export ANTHROPIC_API_KEY=sk-ant-xxx  # Claude
+# 或配置本地 Ollama（无需 API key）
 
-Or explicitly request modes:
-- `Chat with me in gentle mode`
-- `Comfort me`
-- `I want to vent`
-- `Be playful with me`
+# 4. 启动菲菲
+python app.py
 
-## Triggers
+# 5. 打开浏览器
+# http://localhost:5000
+```
 
-The skill activates when you say things like:
-- `I'm sad`
-- `Feeling down`
-- `Comfort me`
-- `Talk to me`
-- `I need someone to talk to`
+### 命令行参数
+
+```bash
+python app.py --port 8080          # 指定端口
+python app.py --debug              # 调试模式
+python app.py --config other.yaml  # 指定配置文件
+```
+
+## 🏗️ 架构 v4.0
+
+```
+soul-companion/
+├── app.py                      # 🆕 统一入口（Flask + SocketIO）
+├── config/
+│   ├── config.yaml             # 🆕 统一主配置
+│   └── llm.yaml                # LLM 多后端配置
+├── core/                       # 🆕 业务逻辑层
+│   ├── __init__.py
+│   ├── agent.py                # AI 代理核心（菲菲的大脑）
+│   ├── chat_manager.py         # 聊天管理器（集成记忆系统）
+│   ├── asr_manager.py          # 🆕 语音识别管理器
+│   ├── vision_manager.py       # 🆕 视觉管理器
+│   └── live2d_controller.py    # 🆕 Live2D 动画控制器
+├── scripts/                    # 基础设施层（v3.x 保持不变）
+│   ├── llm_router.py           # 多后端 LLM 路由
+│   ├── llm_backends.py         # 5 种 LLM 后端实现
+│   ├── memory/                 # 长期记忆系统
+│   │   ├── store.py            # SQLite 存储
+│   │   ├── retrieve.py         # 语义检索
+│   │   ├── embedder.py         # 向量嵌入
+│   │   ├── vector_index.py     # 向量索引
+│   │   └── cli.py              # CLI 管理工具
+│   └── voice/                  # 语音模块
+│       ├── tts/                # TTS（edge-tts）
+│       ├── cli.py              # CLI 工具
+│       └── config.yaml         # 语音配置
+├── web/                        # 🆕 前端界面
+│   ├── index.html
+│   ├── app.js
+│   └── style.css
+├── data/                       # 运行时数据
+│   └── memory.db               # 记忆数据库
+├── logs/                       # 运行日志
+├── requirements.txt            # 依赖列表
+└── CHANGELOG.md                # 版本日志
+```
+
+## 📚 文档
+
+- [SKILL.md](SKILL.md) — 技能定义（人格 + 8 模式 + 情感协议）
+- [CHANGELOG.md](CHANGELOG.md) — 版本日志
+- [docs/v3.0-llm.md](docs/v3.0-llm.md) — v3.0 LLM 路由文档
+- [BOOT.md](BOOT.md) — 启动说明
+- [MEMORY.md](MEMORY.md) — 记忆系统
+- [AGENTS.md](AGENTS.md) — Agent 描述
 
 ## License
 
@@ -82,61 +122,3 @@ MIT License - Feel free to use and modify!
 ## Author
 
 TianGe - Created with love for the OpenClaw community
-
-
----
-
-## 🚀 v3.0 快速开始
-
-```bash
-# 1. 克隆
-git clone https://github.com/tiankong0101-byte/soul-companion.git
-cd soul-companion
-
-# 2. 安装依赖
-pip install -r scripts/requirements-v3.0.txt
-
-# 3. 设置至少一个 API key
-export ANTHROPIC_API_KEY=sk-ant-xxx    # 或 OPENAI_API_KEY / DEEPSEEK_API_KEY 等
-
-# 4. 列出后端
-python scripts/llm_router.py list
-
-# 5. 测试对话
-python scripts/llm_router.py chat --backend anthropic --message "你好，菲菲"
-```
-
-## 📚 文档
-
-- [SKILL.md](SKILL.md) — 技能定义（人格 + 8 模式 + 情感协议 + LLM 触发词）
-- [CHANGELOG.md](CHANGELOG.md) — 版本日志
-- [docs/v3.0-llm.md](docs/v3.0-llm.md) — v3.0 LLM 路由详细文档
-- [BOOT.md](BOOT.md) — 启动说明
-- [MEMORY.md](MEMORY.md) — 记忆系统
-- [AGENTS.md](AGENTS.md) — Agent 描述
-
-## 🗂️ 目录结构
-
-```
-soul-companion/
-├── SKILL.md                    # 技能主体
-├── _meta.json                  # 元数据
-├── README.md                   # 本文件
-├── BOOT.md                     # 启动文档
-├── MEMORY.md                   # 记忆
-├── AGENTS.md                   # Agent 描述
-├── CHANGELOG.md                # 版本日志
-├── config/
-│   └── llm.yaml                # v3.0 LLM 多后端配置
-├── docs/
-│   └── v3.0-llm.md             # v3.0 详细文档
-├── scripts/
-│   ├── llm_router.py           # v3.0 统一路由
-│   ├── llm_backends.py         # v3.0 5 种后端实现
-│   ├── test_llm_router.py      # 25 个单元测试
-│   ├── requirements-v3.0.txt   # v3.0 依赖
-│   ├── feifei-tts.py           # v2.2 Edge TTS
-│   └── feifei-tts.ps1          # TTS 包装
-└── references/
-    └── ...
-```
