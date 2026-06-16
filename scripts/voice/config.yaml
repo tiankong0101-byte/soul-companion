@@ -1,0 +1,124 @@
+# soul-companion 语音配置（v3.2）
+
+version: "3.2"
+
+# 全局默认值
+defaults:
+  output_dir: "data/voice_out"   # TTS 输出目录
+  auto_play: false               # 合成后是否自动播放
+
+# ============================================================
+#  TTS 引擎配置
+# ============================================================
+tts:
+  # 默认 engine（被 voice.* 引用）
+  default: "edge-feifei"
+
+  engines:
+    # ---------- 微软 Edge TTS（v2.2 沿用，开箱即用）----------
+    edge-feifei:
+      engine: "edge"
+      voice: "default"            # default/gentle/mature/night → 自动映射 Neural voice
+      rate: "+0%"
+      volume: "+0%"
+      pitch: "+0Hz"
+      output_dir: "data/voice_out/feifei"
+
+    edge-gentle:
+      engine: "edge"
+      voice: "gentle"
+
+    edge-night:
+      engine: "edge"
+      voice: "night"
+      rate: "-10%"                # 深夜模式慢一点
+
+    # ---------- GPT-SoVITS（需自部署 api.py）----------
+    # 启动：python api.py -a 127.0.0.1 -p 9880 -c GPT_SoVITS/configs/tts_infer.yaml
+    gpt-sovits-feifei:
+      engine: "gpt_sovits"
+      base_url: "http://127.0.0.1:9880"
+      ref_audio_path: "models/gpt_sovits/feifei_ref.wav"
+      prompt_text: "这是参考音频的文本内容"
+      text_language: "zh"
+      prompt_language: "zh"
+      timeout: 60
+
+    # ---------- 阿里 CosyVoice（需自部署 Docker）----------
+    cosy-feifei:
+      engine: "cosyvoice"
+      base_url: "http://127.0.0.1:50000"
+      mode: "zero_shot"           # sft / zero_shot / cross_lingual / instruct
+      prompt_text: "这是参考音频的文本"
+      prompt_wav: "models/cosy/feifei_6s.wav"
+      timeout: 60
+
+    # ---------- FishSpeech（需自部署 api）----------
+    fish-feifei:
+      engine: "fish_speech"
+      base_url: "http://127.0.0.1:8180"
+      reference_audio: "models/fish/feifei.wav"
+      reference_text: "这是参考文本"
+      max_new_tokens: 1024
+      timeout: 120
+
+    # ---------- MeloTTS（in-process 同步）----------
+    melo-zh:
+      engine: "melotts"
+      language: "ZH"
+      speaker: "ZH_MIX_EN"
+      device: "auto"
+
+    # ---------- SparkTTS ----------
+    spark-feifei:
+      engine: "spark_tts"
+      model_dir: "models/Spark-TTS-0.5B"
+      device: "auto"
+
+# ============================================================
+#  ASR 引擎配置
+# ============================================================
+asr:
+  default: "whisper-base"
+
+  engines:
+    # ---------- Whisper（faster-whisper，推荐）----------
+    whisper-base:
+      engine: "whisper"
+      model_size: "base"          # tiny/base/small/medium/large-v3
+      language: "auto"           # auto / zh / en / ja / ...
+      device: "auto"              # auto / cpu / cuda
+      compute_type: "float16"     # float16(显存) / int8(CPU) / float32
+      beam_size: 5
+      vad_filter: true
+
+    whisper-large:
+      engine: "whisper"
+      model_size: "large-v3"
+      compute_type: "float16"
+      device: "auto"
+
+    # ---------- FunASR（中文专用，效果最好）----------
+    funasr-zh:
+      engine: "funasr"
+      model: "paraformer-zh"
+      vad_model: "fsmn-vad"
+      punc_model: "ct-punc"
+      device: "cpu"
+
+    funasr-sensevoice:
+      engine: "funasr"
+      model: "iic/SenseVoiceSmall"
+      vad_model: "iic/speech_fsmn_vad_zh-cn-16k-common"
+      punc_model: "iic/punc_ct-transformer_zh-cn-common-vocab272727"
+      device: "cpu"
+
+    # ---------- sherpa-onnx（嵌入式友好，无 PyTorch 依赖）----------
+    sherpa-zipformer:
+      engine: "sherpa_onnx"
+      encoder: "models/sherpa/encoder.onnx"
+      decoder: "models/sherpa/decoder.onnx"
+      joiner: "models/sherpa/joiner.onnx"
+      tokens: "models/sherpa/tokens.txt"
+      num_threads: 2
+      provider: "cpu"

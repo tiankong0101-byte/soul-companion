@@ -6,6 +6,43 @@
 
 所有版本变更记录于此。格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [3.2.0] - 2026-06-16 - Open-LLM-VTuber 迁移 - Phase 3: 多 TTS + ASR
+
+### 新增 ✨
+- **6 种 TTS 引擎** `scripts/voice/tts/`
+  - EdgeTTS（v2.2 沿用，云端，免部署）
+  - GPTSoVITSTTS（HTTP API 模板）
+  - CosyVoiceTTS（HTTP API 模板）
+  - FishSpeechTTS（HTTP API 模板）
+  - MeloTTSTTS（in-process 模板）
+  - SparkTTSTTS（in-process 模板）
+- **3 种 ASR 引擎** `scripts/voice/asr/`
+  - WhisperASR（faster-whisper，本地）
+  - FunASRASR（in-process 模板）
+  - SherpaOnnxASR（ONNX 模板）
+- **BaseTTS 抽象** + TTSResult 数据类
+  - emoji/控制字符预处理
+  - ffplay/afplay 自动播放器选择
+  - L2 范数归一化的输出路径哈希
+- **BaseASR 抽象** + ASRResult 数据类
+  - 语言自动检测
+  - 段落级时间戳
+- **统一 CLI** `scripts/voice/cli.py`
+  - tts list / speak / voices
+  - asr list / transcribe
+- **9 个 TTS 预设 + 4 个 ASR 预设** `scripts/voice/config.yaml`
+- **26 个单元测试** 全部通过
+  - TTS 注册表 + Edge TTS + 5 个模板引擎
+  - ASR 注册表 + WhisperASR（mock）
+  - CLI 三个子命令
+  - preprocess/play 等工具方法
+- **真实合成验证**：12,960 字节 MP3 文件
+- **SKILL.md 第十五节 + 11 个新触发词**（说话/念出来/听写/转文字 等）
+
+### 集成 v3.0 + v3.1 🤝
+完整 RAG + 语音链路（详见 SKILL.md §15.7）：
+ASR → 文本 → MemoryRetriever → LLM Router → 文本 → TTS → 音频
+
 ## [3.1.0] - 2026-06-16 - Open-LLM-VTuber 迁移 - Phase 2: 长期记忆
 
 ### 新增 ✨
