@@ -1,0 +1,31 @@
+# ============================================================
+#  config.yaml - 长期记忆配置（v3.1）
+# ============================================================
+
+version: "3.1"
+
+# SQLite + FAISS 文件位置
+paths:
+  db_file: "data/memory.db"           # 相对仓库根
+  index_backend: "faiss"              # faiss | numpy（自动 fallback）
+
+# Embedding 配置
+embedding:
+  backend: "auto"                     # auto | ollama | openai_compat | hash
+  model: "nomic-embed-text"           # ollama 时使用；openai 时是 text-embedding-3-small
+  base_url: "http://localhost:11434"  # ollama 默认
+  dim: 768
+
+# 自动清理策略
+retention:
+  enabled: true
+  older_than_days: 90     # 超过 90 天
+  importance_below: 0.3   # 重要性低于 0.3
+  cleanup_schedule: "monthly"  # monthly | weekly | manual
+
+# 注入到 LLM 的策略
+retrieval:
+  max_facts: 15
+  top_k_episodes: 3
+  min_similarity: 0.3
+  include_emotion_tag: true
