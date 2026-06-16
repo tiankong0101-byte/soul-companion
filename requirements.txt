@@ -25,5 +25,5 @@ numpy>=1.26
 # funasr>=1.0        # 阿里 FunASR（需额外安装 C++ 依赖）
 # openai-whisper>=20231117  # OpenAI Whisper
 
-# === 可选：视觉模块 ===
-# Pillow>=10.0       # 图片处理（Vision 模块使用）
+# === 图片生成（v5.0） ===
+# httpx 已在 LLM 后端中依赖

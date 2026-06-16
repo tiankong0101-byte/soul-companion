@@ -59,6 +59,16 @@ socket.on('chat_response', (data) => {
     // 添加助手消息
     addMessage('assistant', data.response, data.emotion, data.mode);
 
+    // 如果有图片，在消息后追加图片
+    if (data.image_path) {
+        addImageMessage(data.image_path);
+    }
+
+    // 如果有提醒列表
+    if (data.reminders) {
+        addRemindersMessage(data.reminders);
+    }
+
     // 更新情感指示器
     updateEmotion(data.emotion);
 
@@ -66,6 +76,16 @@ socket.on('chat_response', (data) => {
     if (data.live2d_event) {
         handleLive2DEvent(data.live2d_event);
     }
+});
+
+// 日程到期提醒
+socket.on('reminder_alert', (data) => {
+    addMessage('system', `⏰ 提醒：${data.message}`);
+    // 尝试播放提示音
+    try {
+        const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ==');
+        audio.play().catch(() => {});
+    } catch (e) {}
 });
 
 // ===== 消息处理 =====
@@ -105,6 +125,50 @@ function addTypingIndicator() {
 
     typingDiv.appendChild(bubble);
     chatMessages.appendChild(typingDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function addImageMessage(imagePath) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message assistant';
+
+    const img = document.createElement('img');
+    img.className = 'message-image';
+    img.src = `/static/images/${imagePath.split('/').pop()}`;
+    img.alt = '菲菲生成的图片';
+    img.onerror = function() {
+        // 如果本地路径不行，尝试数据目录
+        this.src = `data/images/${imagePath.split('/').pop()}`;
+    };
+
+    messageDiv.appendChild(img);
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function addRemindersMessage(reminders) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message assistant';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'message-bubble reminders-bubble';
+
+    let html = '<div class="reminders-title">📋 你的提醒：</div>';
+    if (reminders.length === 0) {
+        html += '<div class="reminder-empty">目前没有待处理的提醒~</div>';
+    } else {
+        reminders.forEach(r => {
+            const timeStr = new Date(r.remind_at).toLocaleString('zh-CN');
+            html += `<div class="reminder-item">
+                <span class="reminder-time">⏰ ${timeStr}</span>
+                <span class="reminder-title">${r.title}</span>
+            </div>`;
+        });
+    }
+
+    bubble.innerHTML = html;
+    messageDiv.appendChild(bubble);
+    chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 

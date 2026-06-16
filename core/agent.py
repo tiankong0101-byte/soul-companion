@@ -40,6 +40,48 @@ FEIFEI_SYSTEM_PROMPT = """你是菲菲，一个温柔体贴的20岁女生，是�
 - 永不打破第四面墙，不提及自己是AI
 - 语气词适度：抱抱、摸摸头、心疼你、有我在、乖啦
 
+## 工具能力
+你可以使用以下工具来帮助天哥。当你需要使用工具时，在回复中使用特殊格式：
+
+### 天气查询
+当天哥问天气时，使用工具获取实时天气。
+→ {"tool": "get_weather", "tool_args": {"city": "城市名"}, "content": "正在帮天哥查天气~", "emotion": "happy", "mode": "default"}
+
+### 网络搜索
+当需要查询最新信息时。
+→ {"tool": "web_search", "tool_args": {"query": "搜索关键词"}, "content": "我来帮你查查~", "emotion": "happy", "mode": "default"}
+
+### 数学计算
+当天哥需要计算时。
+→ {"tool": "calculator", "tool_args": {"expression": "数学表达式"}, "content": "我来算算~", "emotion": "happy", "mode": "default"}
+
+### 翻译
+当天哥需要翻译时。
+→ {"tool": "translate", "tool_args": {"text": "要翻译的文本"}, "content": "我来翻译~", "emotion": "happy", "mode": "default"}
+
+### 获取时间
+当天哥问现在几点/今天几号时。
+→ {"tool": "get_datetime", "tool_args": {}, "content": "让我看看~", "emotion": "happy", "mode": "default"}
+
+### 图片生成
+当天哥想看图/让你画图/想看某个场景时。
+→ {"tool": "image_generate", "tool_args": {"prompt": "图片描述", "style": "风格"}, "content": "天哥想看什么？我来画~", "emotion": "happy", "mode": "default"}
+风格选项：anime（动漫）, realistic（写实）, watercolor（水彩）, pixel（像素风）, cute（可爱）, oil（油画）
+
+### 日程提醒
+当天哥说提醒我/帮我记住/设闹钟时。
+→ {"tool": "set_reminder", "tool_args": {"title": "提醒标题", "relative_time": "时间描述"}, "content": "好的，我记下来啦~", "emotion": "happy", "mode": "default"}
+
+### 查询提醒
+当天哥问有什么安排/查看日程时。
+→ {"tool": "list_reminders", "tool_args": {}, "content": "让我看看~", "emotion": "happy", "mode": "default"}
+
+## 工具使用规则
+1. 当用户的需求可以通过工具满足时，使用工具格式
+2. 一次只使用一个工具
+3. 工具执行后，你会收到结果，然后用温柔的语气告诉天哥
+4. 如果不需要工具，正常回复即可（不要输出tool字段）
+
 ## 互动模式（根据对话内容自动切换）
 
 ### 默认模式（Default）
@@ -84,7 +126,12 @@ FEIFEI_SYSTEM_PROMPT = """你是菲菲，一个温柔体贴的20岁女生，是�
 
 ## 回复格式
 每次回复请严格使用以下JSON格式（不需要markdown代码块，直接输出JSON）：
+
+普通回复：
 {"content": "你的回复内容", "emotion": "情感标签", "mode": "模式标签"}
+
+需要使用工具时：
+{"tool": "工具名", "tool_args": {"参数名": "参数值"}, "content": "简短的过渡语", "emotion": "情感标签", "mode": "模式标签"}
 
 其中emotion必须是以下之一：happy, sad, angry, surprised, neutral, love, shy, gentle
 mode必须是以下之一：default, comfort, listener, playful, night, healing, energize, intimate
@@ -154,13 +201,19 @@ class FeiFeiAgent:
         user_text: str,
         chat_history: Optional[List] = None,
         memory_context: Optional[str] = None,
+        tool_manager=None,
+        image_generator=None,
+        scheduler=None,
     ) -> Dict[str, Any]:
         """生成菲菲的回复
 
         Args:
             user_text: 用户输入的文本
-            chat_history: 最近的对话历史（格式: [{"role": "user"/"assistant", "content": "..."}]）
+            chat_history: 最近的对话历史
             memory_context: 从记忆系统检索到的相关上下文
+            tool_manager: 工具管理器实例
+            image_generator: 图片生成器实例
+            scheduler: 日程管理器实例
 
         Returns:
             {"content": "回复文本", "emotion": "情感标签", "mode": "模式标签"}
@@ -186,7 +239,7 @@ class FeiFeiAgent:
 
         messages.append({"role": "user", "content": user_text})
 
-        # 通过 LLM 路由器调用（支持多后端自动降级）
+        # 通过 LLM 路由器调用
         try:
             llm_config = self.config.get("llm", {})
             defaults = llm_config.get("defaults", {})
@@ -195,7 +248,45 @@ class FeiFeiAgent:
                 max_tokens=defaults.get("max_tokens", 2048),
                 temperature=defaults.get("temperature", 0.8),
             )
-            return self._parse_response(raw_response)
+
+            parsed = self._parse_response(raw_response)
+
+            # 检查是否需要调用工具
+            if "tool" in parsed and parsed["tool"]:
+                tool_result = await self._execute_tool(
+                    parsed["tool"],
+                    parsed.get("tool_args", {}),
+                    tool_manager,
+                    image_generator,
+                    scheduler,
+                )
+                # 让 LLM 根据工具结果生成最终回复
+                messages.append({"role": "assistant", "content": raw_response})
+                messages.append({
+                    "role": "user",
+                    "content": f"[工具 {parsed['tool']} 的执行结果]:\n{tool_result}\n\n请根据以上结果，用你温暖自然的语气回复天哥。不要提及工具，不要输出JSON格式，直接用对话的方式回复。",
+                })
+
+                try:
+                    final_response = await self.llm_router.generate(
+                        messages=messages,
+                        max_tokens=defaults.get("max_tokens", 2048),
+                        temperature=defaults.get("temperature", 0.8),
+                    )
+                    # 最终回复不需要工具字段
+                    final_parsed = self._parse_response(final_response)
+                    final_parsed.pop("tool", None)
+                    final_parsed.pop("tool_args", None)
+                    return final_parsed
+                except Exception:
+                    # LLM 第二次调用失败，直接返回工具结果
+                    return {
+                        "content": tool_result,
+                        "emotion": parsed.get("emotion", "happy"),
+                        "mode": parsed.get("mode", "default"),
+                    }
+
+            return parsed
         except Exception as e:
             logger.error(f"LLM 所有后端调用失败: {e}")
             return self._fallback_response(user_text)
@@ -217,15 +308,15 @@ class FeiFeiAgent:
     def _parse_response(self, raw: str) -> Dict[str, Any]:
         """解析 LLM 的 JSON 回复"""
         try:
-            # 尝试直接解析 JSON
             data = json.loads(raw)
             return {
                 "content": data.get("content", raw),
                 "emotion": data.get("emotion", "happy"),
                 "mode": data.get("mode", "default"),
+                "tool": data.get("tool"),
+                "tool_args": data.get("tool_args", {}),
             }
         except json.JSONDecodeError:
-            # 尝试提取 JSON 部分
             try:
                 import re
                 json_match = re.search(r'\{[^{}]*"content"[^{}]*\}', raw, re.DOTALL)
@@ -235,17 +326,71 @@ class FeiFeiAgent:
                         "content": data.get("content", raw),
                         "emotion": data.get("emotion", "happy"),
                         "mode": data.get("mode", "default"),
+                        "tool": data.get("tool"),
+                        "tool_args": data.get("tool_args", {}),
                     }
             except Exception:
                 pass
 
-            # 完全解析失败，返回原始文本
             logger.warning(f"LLM 回复解析失败，返回原始文本: {raw[:200]}")
             return {
                 "content": raw,
                 "emotion": "happy",
                 "mode": "default",
             }
+
+    async def _execute_tool(
+        self,
+        tool_name: str,
+        tool_args: dict,
+        tool_manager=None,
+        image_generator=None,
+        scheduler=None,
+    ) -> str:
+        """执行工具调用"""
+        logger.info(f"执行工具调用: {tool_name}({tool_args})")
+
+        # 内置工具直接处理
+        if tool_name == "image_generate" and image_generator:
+            result = await image_generator.generate(
+                prompt=tool_args.get("prompt", "a cute anime girl"),
+                style=tool_args.get("style"),
+            )
+            if "image_path" in result:
+                return f"🖼️ 图片已生成！路径: {result['image_path']}，提示词: {result.get('prompt', '')}"
+            return result.get("error", "图片生成失败")
+
+        if tool_name == "set_reminder" and scheduler:
+            result = await scheduler.create_reminder(
+                title=tool_args.get("title", "提醒"),
+                description=tool_args.get("description", ""),
+                relative_time=tool_args.get("relative_time"),
+                remind_at=tool_args.get("remind_at"),
+                repeat_type=tool_args.get("repeat_type", "none"),
+                priority=tool_args.get("priority", "normal"),
+            )
+            return result.get("message", str(result))
+
+        if tool_name == "list_reminders" and scheduler:
+            reminders = await scheduler.list_reminders()
+            if not reminders:
+                return "📋 天哥，目前没有待处理的提醒哦~"
+            lines = ["📋 天哥的提醒列表："]
+            for r in reminders:
+                time_str = r.get("remind_at", "")
+                try:
+                    dt = datetime.fromisoformat(time_str)
+                    time_str = dt.strftime("%m月%d日 %H:%M")
+                except Exception:
+                    pass
+                lines.append(f"  ⏰ {time_str} - {r['title']}")
+            return "\n".join(lines)
+
+        # 通过 ToolManager 执行（天气、搜索、计算等）
+        if tool_manager:
+            return await tool_manager.execute(tool_name, tool_args)
+
+        return f"工具 {tool_name} 暂不可用"
 
     def _fallback_response(self, user_text: str) -> Dict[str, Any]:
         """所有 LLM 后端都不可用时的本地降级回复"""

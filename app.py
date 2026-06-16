@@ -26,6 +26,9 @@ from flask_socketio import SocketIO
 from core.agent import FeiFeiAgent
 from core.chat_manager import ChatManager
 from core.live2d_controller import Live2DController
+from core.tools import ToolManager
+from core.image_generator import ImageGenerator
+from core.scheduler import Scheduler
 
 
 def load_config(config_path: str = None) -> dict:
@@ -78,8 +81,32 @@ def create_app(config: dict) -> tuple:
     chat_manager = ChatManager(config)
     live2d = Live2DController(config)
 
+    # 初始化新模块
+    tool_manager = ToolManager(config)
+    image_generator = ImageGenerator(config)
+    scheduler = Scheduler(config)
+
+    # 注入模块到 ChatManager
+    chat_manager.tool_manager = tool_manager
+    chat_manager.image_generator = image_generator
+    chat_manager.scheduler = scheduler
+
+    # 注册日程到期回调
+    async def on_reminder_due(reminder):
+        """日程到期时推送到前端"""
+        title = reminder.get("title", "提醒")
+        socketio.emit("reminder_alert", {
+            "title": title,
+            "message": f"⏰ 天哥，该「{title}」啦~",
+        })
+
+    scheduler.register_callback(on_reminder_due)
+
     logger.info("="*50)
-    logger.info("菲菲 Soul Companion v4.0 启动中...")
+    logger.info("菲菲 Soul Companion v5.0 启动中...")
+    logger.info(f"  📦 工具: {tool_manager.list_tools()}")
+    logger.info(f"  🖼️ 图片生成: {image_generator.get_info()['provider']}")
+    logger.info(f"  📅 日程提醒: 就绪")
     logger.info("="*50)
 
     # ===== 路由定义 =====
@@ -116,12 +143,22 @@ def create_app(config: dict) -> tuple:
             response.get("mode", "default"),
         )
 
-        return jsonify({
+        result = {
             "response": response.get("content", ""),
             "emotion": response.get("emotion", "neutral"),
             "mode": response.get("mode", "default"),
             "live2d_event": live2d_event,
-        })
+        }
+
+        # 图片路径
+        if response.get("image_path"):
+            result["image_path"] = response["image_path"]
+
+        # 提醒列表
+        if response.get("reminders"):
+            result["reminders"] = response["reminders"]
+
+        return jsonify(result)
 
     @app.route("/api/stats")
     def stats():
@@ -133,9 +170,24 @@ def create_app(config: dict) -> tuple:
         """健康检查"""
         return jsonify({
             "status": "ok",
-            "version": "4.0.0",
+            "version": "5.0.0",
             "name": "菲菲 Soul Companion",
+            "tools": tool_manager.list_tools(),
+            "image_generator": image_generator.get_info(),
+            "scheduler": scheduler.get_info(),
         })
+
+    # 启动日程后台检查
+    import threading
+    scheduler_loop = asyncio.new_event_loop()
+
+    def run_scheduler():
+        asyncio.set_event_loop(scheduler_loop)
+        scheduler_loop.run_until_complete(scheduler.start_check_loop())
+
+    scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
+    scheduler_thread.start()
+    logger.info("日程后台检查已启动")
 
     # ===== WebSocket 事件 =====
 
@@ -167,12 +219,18 @@ def create_app(config: dict) -> tuple:
         )
 
         # 发送回复
-        socketio.emit("chat_response", {
+        result = {
             "response": response.get("content", ""),
             "emotion": response.get("emotion", "neutral"),
             "mode": response.get("mode", "default"),
             "live2d_event": live2d_event,
-        })
+        }
+        if response.get("image_path"):
+            result["image_path"] = response["image_path"]
+        if response.get("reminders"):
+            result["reminders"] = response["reminders"]
+
+        socketio.emit("chat_response", result)
 
     @socketio.on("typing")
     def handle_typing(data):

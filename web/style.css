@@ -373,6 +373,63 @@ body {
     margin-top: 16px;
 }
 
+/* ===== 图片消息 ===== */
+.message-image {
+    max-width: 300px;
+    max-height: 300px;
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.message-image:hover {
+    transform: scale(1.05);
+}
+
+/* ===== 日程提醒 ===== */
+.reminders-bubble {
+    padding: 16px 20px;
+    min-width: 250px;
+}
+
+.reminders-title {
+    font-weight: bold;
+    font-size: 15px;
+    margin-bottom: 10px;
+    color: var(--primary);
+}
+
+.reminder-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+}
+
+.reminder-item:last-child {
+    border-bottom: none;
+}
+
+.reminder-time {
+    color: var(--primary);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.reminder-title {
+    color: var(--text);
+}
+
+.reminder-empty {
+    color: var(--text-light);
+    font-size: 14px;
+    text-align: center;
+    padding: 8px 0;
+}
+
 /* ===== 响应式 ===== */
 @media (max-width: 768px) {
     .app-container {

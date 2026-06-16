@@ -66,6 +66,16 @@ vision:
   provider: "openai"            # 使用多模态 LLM
   max_image_size: 1024          # 图片最大边长
 
+image:
+  provider: "pollinations"      # pollinations | stability | local
+  width: 512
+  height: 512
+  # stability_api_key: ""       # Stability AI（可选）
+  # local_url: "http://127.0.0.1:7860"  # 本地 SD WebUI（可选）
+
+scheduler:
+  check_interval: 30            # 检查间隔（秒）
+
 safety:
   enabled: true
   hotline: "400-161-9995"       # 全国心理援助热线

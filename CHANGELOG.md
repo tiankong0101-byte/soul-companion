@@ -2,6 +2,18 @@
 
 所有版本变更记录于此。格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [5.0.0] - 2026-06-16 - 工具调用 + 图片生成 + 日程提醒
+
+### 新增 ✨
+- **工具调用框架** `core/tools.py` — 7种内置工具
+  - 🌤️ 天气查询 / 🔍 网络搜索 / 🧮 数学计算 / 🌐 翻译 / 🕐 时间 / 🌐 网页抓取 / 🎲 随机
+- **图片生成** `core/image_generator.py` — Pollinations/Stability/本地SD
+- **日程提醒** `core/scheduler.py` — SQLite + 自然语言解析 + 重复提醒
+- Agent 工具调用集成（LLM 自主决策 → 工具执行 → 温柔回复）
+- 前端：图片消息显示 + 日程列表UI + 到期提醒推送
+
+---
+
 ## [4.0.0] - 2026-06-16 - 架构大升级
 
 ### 重大变更 🔄

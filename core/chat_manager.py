@@ -35,6 +35,11 @@ class ChatManager:
         self.session_id = str(uuid.uuid4())[:8]
         self.conversation_history: List[Dict[str, Any]] = []
 
+        # 新模块引用（由 app.py 注入）
+        self.tool_manager = None
+        self.image_generator = None
+        self.scheduler = None
+
         # 初始化记忆系统
         memory_config = config.get("memory", {})
         self.memory_enabled = memory_config.get("enabled", True)
@@ -106,6 +111,9 @@ class ChatManager:
             user_text=user_text,
             chat_history=self.conversation_history,
             memory_context=memory_context,
+            tool_manager=self.tool_manager,
+            image_generator=self.image_generator,
+            scheduler=self.scheduler,
         )
 
         # 4. 保存助手回复
