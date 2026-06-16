@@ -237,7 +237,7 @@ body {
     gap: 6px;
 }
 
-.btn-send, .btn-voice {
+.btn-send, .btn-voice, .btn-image {
     width: 36px;
     height: 36px;
     border: none;
@@ -267,6 +267,27 @@ body {
 .btn-voice {
     background: transparent;
     color: var(--text-light);
+}
+
+.btn-image {
+    background: transparent;
+    color: var(--text-light);
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.btn-image:hover {
+    background: var(--primary-light);
+    color: var(--primary);
 }
 
 .btn-voice:hover {

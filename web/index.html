@@ -35,12 +35,14 @@
 
             <div class="chat-input-area">
                 <div class="input-row">
+                    <button class="btn-image" id="btn-image" title="发送图片">🖼️</button>
                     <textarea
                         id="user-input"
                         placeholder="跟菲菲说点什么吧~"
                         rows="1"
                         maxlength="2000"
                     ></textarea>
+                    <input type="file" id="image-input" accept="image/*" style="display:none" />
                     <div class="input-actions">
                         <button class="btn-voice" id="btn-voice" title="语音输入">🎤</button>
                         <button class="btn-send" id="btn-send" title="发送">➤</button>

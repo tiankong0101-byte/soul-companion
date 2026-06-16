@@ -9,6 +9,8 @@ const chatMessages = document.getElementById('chat-messages');
 const userInput = document.getElementById('user-input');
 const btnSend = document.getElementById('btn-send');
 const btnVoice = document.getElementById('btn-voice');
+const btnImage = document.getElementById('btn-image');
+const imageInput = document.getElementById('image-input');
 const btnClear = document.getElementById('btn-clear');
 const btnStats = document.getElementById('btn-stats');
 const charCount = document.getElementById('char-count');
@@ -315,9 +317,76 @@ async function showStats() {
     }
 }
 
+// ===== 图片识图 =====
+function triggerImageUpload() {
+    imageInput.click();
+}
+
+async function handleImageUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // 检查文件类型
+    if (!file.type.startsWith('image/')) {
+        alert('请选择图片文件');
+        return;
+    }
+
+    // 显示用户发送的图片预览
+    const reader = new FileReader();
+    reader.onload = async function(ev) {
+        const imagePreviewDiv = document.createElement('div');
+        imagePreviewDiv.className = 'message user';
+        const img = document.createElement('img');
+        img.className = 'message-image';
+        img.src = ev.target.result;
+        imagePreviewDiv.appendChild(img);
+        chatMessages.appendChild(imagePreviewDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        // 添加打字指示器
+        addTypingIndicator();
+
+        // 转为 base64 发送
+        const base64 = ev.target.result;
+
+        // 通过 WebSocket 发送
+        socket.emit('analyze_image', {
+            image_base64: base64,
+            prompt: '请仔细观察这张图片，然后用温暖自然的语气描述你看到了什么~',
+        });
+    };
+    reader.readAsDataURL(file);
+
+    // 清空 input 以便重复上传同一张图
+    imageInput.value = '';
+}
+
+// 识图结果
+socket.on('vision_response', (data) => {
+    removeTypingIndicator();
+
+    if (data.error) {
+        addMessage('system', `⚠️ 识图失败: ${data.error}`);
+        return;
+    }
+
+    addMessage('assistant', data.response, 'happy', 'default');
+    updateEmotion('happy');
+});
+
+// 识图状态
+socket.on('vision_status', (data) => {
+    if (data.status === 'analyzing') {
+        addTypingIndicator();
+    }
+});
+
 // ===== 事件绑定 =====
 btnSend.addEventListener('click', sendMessage);
 btnVoice.addEventListener('click', toggleVoice);
+btnImage.addEventListener('click', triggerImageUpload);
+imageInput.addEventListener('change', handleImageUpload);
 btnClear.addEventListener('click', clearChat);
 btnStats.addEventListener('click', showStats);
 btnCloseStats.addEventListener('click', () => { statsModal.style.display = 'none'; });

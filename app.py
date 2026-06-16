@@ -29,6 +29,7 @@ from core.live2d_controller import Live2DController
 from core.tools import ToolManager
 from core.image_generator import ImageGenerator
 from core.scheduler import Scheduler
+from core.vision_manager import VisionManager
 
 
 def load_config(config_path: str = None) -> dict:
@@ -85,6 +86,7 @@ def create_app(config: dict) -> tuple:
     tool_manager = ToolManager(config)
     image_generator = ImageGenerator(config)
     scheduler = Scheduler(config)
+    vision_manager = VisionManager(config)
 
     # 注入模块到 ChatManager
     chat_manager.tool_manager = tool_manager
@@ -165,6 +167,58 @@ def create_app(config: dict) -> tuple:
         """获取统计信息"""
         return jsonify(chat_manager.get_stats())
 
+    @app.route("/api/vision", methods=["POST"])
+    async def vision():
+        """图片识图接口"""
+        # 支持两种方式：URL 和 base64
+        data = request.get_json()
+        image_url = data.get("image_url", "")
+        image_base64 = data.get("image_base64", "")
+        prompt = data.get("prompt", "")
+
+        image_source = image_url or image_base64
+        if not image_source:
+            return jsonify({"error": "请提供图片 URL 或 base64 数据"}), 400
+
+        result = await vision_manager.analyze_image(image_source, prompt or None)
+        return jsonify({
+            "response": result,
+            "status": "ok",
+        })
+
+    @app.route("/api/vision/upload", methods=["POST"])
+    async def vision_upload():
+        """上传图片识图接口"""
+        if "image" not in request.files:
+            return jsonify({"error": "请上传图片"}), 400
+
+        file = request.files["image"]
+        if not file.filename:
+            return jsonify({"error": "文件名为空"}), 400
+
+        # 读取图片并转为 base64
+        import base64
+        image_data = file.read()
+        b64 = base64.b64encode(image_data).decode()
+
+        # 确定 MIME 类型
+        mime_map = {
+            ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+            ".png": "image/png", ".gif": "image/gif",
+            ".webp": "image/webp",
+        }
+        ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else "jpeg"
+        mime = mime_map.get(f".{ext}", "image/jpeg")
+        data_uri = f"data:{mime};base64,{b64}"
+
+        prompt = request.form.get("prompt", "")
+        result = await vision_manager.analyze_image(data_uri, prompt or None)
+        return jsonify({
+            "response": result,
+            "filename": file.filename,
+            "status": "ok",
+        })
+
     @app.route("/api/health")
     def health():
         """健康检查"""
@@ -236,6 +290,25 @@ def create_app(config: dict) -> tuple:
     def handle_typing(data):
         """用户正在输入"""
         socketio.emit("user_typing", {"typing": True})
+
+    @socketio.on("analyze_image")
+    async def handle_analyze_image(data):
+        """WebSocket 图片识图"""
+        image_source = data.get("image_url") or data.get("image_base64", "")
+        prompt = data.get("prompt", "")
+
+        if not image_source:
+            socketio.emit("vision_response", {"error": "请提供图片"})
+            return
+
+        # 先发"正在看图"状态
+        socketio.emit("vision_status", {"status": "analyzing"})
+
+        result = await vision_manager.analyze_image(image_source, prompt or None)
+        socketio.emit("vision_response", {
+            "response": result,
+            "status": "ok",
+        })
 
     return app, socketio
 
