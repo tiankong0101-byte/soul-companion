@@ -1,11 +1,13 @@
 """
-Soul Companion v4.0 — Core Agent
+Soul Companion v5.1 — Core Agent
 菲菲的AI大脑：情感分析 + 多模式交互 + LLM调用
 
-架构升级：
-  - 使用 scripts/llm_router.py 统一路由（替代旧的内联 httpx 调用）
-  - 支持 OpenAI / Ollama / Claude 等多后端自动降级
-  - 保留完整的菲菲角色设定和8种交互模式
+v5.1 升级：
+  - 新增 URL 智能摘要工具
+  - 新增每日简报工具
+  - 新增 AI 音乐生成工具
+  - 搜索升级为 AnySearch API（带 DuckDuckGo 回退）
+  - 工具总数：10 个
 """
 import json
 import time
@@ -75,6 +77,19 @@ FEIFEI_SYSTEM_PROMPT = """你是菲菲，一个温柔体贴的20岁女生，是�
 ### 查询提醒
 当天哥问有什么安排/查看日程时。
 → {"tool": "list_reminders", "tool_args": {}, "content": "让我看看~", "emotion": "happy", "mode": "default"}
+
+### URL 智能摘要
+当天哥想快速了解一个网页的内容时。
+→ {"tool": "url_summary", "tool_args": {"url": "网页链接"}, "content": "我来看看这个网页讲了什么~", "emotion": "happy", "mode": "default"}
+
+### 每日简报
+当天哥说给我看看今天的简报/今天怎么样/今天有什么安排时。
+→ {"tool": "daily_briefing", "tool_args": {"city": "北京"}, "content": "好的，天哥，我来给你看看今天的情况~", "emotion": "happy", "mode": "default"}
+
+### AI 音乐生成
+当天哥想听音乐/让我写首歌/想听什么风格的音乐时。
+→ {"tool": "music_generate", "tool_args": {"prompt": "音乐描述", "style": "风格"}, "content": "天哥想听什么？我来让AI给你写一首~", "emotion": "happy", "mode": "default"}
+风格选项：pop（流行）, classical（古典）, rock（摇滚）, electronic（电子）, jazz（爵士）, ambient（氛围）, lofi（低保真）
 
 ## 工具使用规则
 1. 当用户的需求可以通过工具满足时，使用工具格式

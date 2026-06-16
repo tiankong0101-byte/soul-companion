@@ -1,3 +1,11 @@
+## v5.1 (2026-06-16) - by 天哥 & 菲菲
+- 搜索升级：DuckDuckGo 爬虫 → AnySearch API（多引擎聚合，自动回退）
+- 新增 URL 智能摘要工具
+- 新增每日简报工具（天气+日程+新闻）
+- 新增 AI 音乐生成工具
+- 工具总数从 7 个增加到 10 个
+- Agent 提示词更新，加入新工具使用说明
+
 # Changelog - soul-companion
 
 所有版本变更记录于此。格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
