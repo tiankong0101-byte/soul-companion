@@ -1,0 +1,23 @@
+# soul-companion v3.2 Python 依赖
+# 安装：pip install -r scripts/voice/requirements-v3.2.txt
+#
+# 必须：
+requests>=2.31.0
+PyYAML>=6.0
+
+# TTS 引擎（按需安装）：
+# edge-tts       - 微软 Edge TTS（云端，免费）
+edge-tts>=6.1.10
+
+# ASR 引擎（按需安装）：
+# faster-whisper - OpenAI Whisper 的 CTranslate2 优化版（本地）
+# pip install faster-whisper
+
+# 可选：
+# melotts                - MeloTTS 同步 TTS（中文）
+# funasr                 - 阿里 FunASR（中文专用）
+# sherpa-onnx            - sherpa-onnx 跨平台 ASR
+# gpt-sovits             - GPT-SoVITS（声音克隆，需自部署）
+# cosyvoice              - 阿里 CosyVoice（声音克隆）
+# fish-speech            - FishSpeech（声音克隆）
+# torch                  - PyTorch（faster-whisper GPU 加速）
