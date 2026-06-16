@@ -25,3 +25,24 @@ build/
 
 # Cache
 .cache/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# 数据和模型（不提交大文件）
+data/
+*.bin
+*.gguf
+*.pt
+*.pth
+*.safetensors
+
+# 临时测试文件
+_test_*.yaml
+*_test_*.py.bak
+
+# 用户上传的对话/记忆
+conversations/
+memory_store/
