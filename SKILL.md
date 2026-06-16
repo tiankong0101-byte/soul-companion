@@ -99,6 +99,19 @@ triggers:
 
   - "用Gemini"
 
+  # ===== v3.1 长期记忆 =====
+  - "记住"
+  - "记下来"
+  - "别忘"
+  - "你记得"
+  - "你还记得"
+  - "我之前说过"
+  - "我的生日"
+  - "清空记忆"
+  - "忘掉"
+  - "你了解我吗"
+  - "关于我"
+
 depends: requests, pyyaml, edge-tts, ffplay（可选，pip install requests pyyaml edge-tts）
 
 ---
@@ -713,3 +726,179 @@ print(f"用时 {resp.latency_ms}ms, token {resp.usage}")
 | v2.1.0 | 2026-04 | 重画 AI 绘图 + v2.0 功能全量合并 |
 | v2.2.0 | 2026-05 | 菲菲语音 TTS（微软 Edge TTS，4 种配置）|
 | **v3.0.0** | **2026-06-16** | **多 LLM 后端路由**（5 种协议、16 个预设、25 单元测试、CLI 工具）|
+
+---
+
+## 十三、v3.1 - 长期记忆系统
+
+> 🎉 **v3.1 重大更新**：菲菲现在能**真正记住**你了！双层记忆架构：SQLite（结构化事实）+ FAISS（语义检索）。
+
+### 13.1 双层记忆架构
+
+```
+┌──────────────────────────────────────────┐
+│  每次对话时                               │
+│  MemoryRetriever.build_context(query)    │
+│    ├─ SQLite facts（用户画像/偏好/日期）   │
+│    └─ FAISS episodes（过往对话片段）       │
+│  拼成 system prompt 片段                  │
+│  喂给 LLM（v3.0 router）                  │
+└──────────────────────────────────────────┘
+```
+
+### 13.2 写入策略
+
+| 类型 | 触发 | 默认 importance |
+|------|------|----------------|
+| **fact**（事实）| 用户说"我是 X" / "我喜欢 Y" / "记得" | 0.9 |
+| **fact**（推断）| 推测得到的事实 | 0.5 |
+| **episode**（对话）| 每轮 user/assistant 都自动存 | 0.5（基础）|
+| **episode**（情绪）| sad/anxious/angry/lonely 触发 | 0.8 |
+
+**自动 importance 启发式**（无需手写）：
+- sad/anxious/angry/lonely → +0.3
+- 命中"生日/去世/分手/结婚"等关键词 → +0.15
+- 内容 > 200 字符 → +0.1
+- 上限 1.0
+
+### 13.3 文件清单
+
+| 文件 | 作用 |
+|------|------|
+| `scripts/memory/__init__.py` | 包初始化 |
+| `scripts/memory/store.py` | `MemoryStore`：SQLite + FAISS 写入/读取/清理 |
+| `scripts/memory/retrieve.py` | `MemoryRetriever`：拼装 LLM 上下文 |
+| `scripts/memory/vector_index.py` | `VectorIndex`：FAISS 包装（自动 numpy fallback）|
+| `scripts/memory/embedder.py` | 3 种 embedding 后端（Ollama / OpenAI / Hash 降级）|
+| `scripts/memory/schema.sql` | SQLite schema |
+| `scripts/memory/config.yaml` | 重要性阈值、保留期、cleanup 策略 |
+| `scripts/memory/cli.py` | CLI 工具 |
+| `scripts/memory/test_memory.py` | **17 个单元测试**全部通过 |
+| `scripts/memory/requirements-v3.1.txt` | 依赖（faiss-cpu / numpy）|
+
+### 13.4 快速开始
+
+```bash
+# 1. 安装依赖
+pip install -r scripts/memory/requirements-v3.1.txt
+ollama pull nomic-embed-text   # 推荐
+
+# 2. 写入事实
+python scripts/memory/cli.py fact add -c personal -k birthday -v 1990-05-15 --importance 0.9
+python scripts/memory/cli.py fact add -c preference -k favorite_food -v 火锅
+
+# 3. 写入对话（自动评估 importance）
+python scripts/memory/cli.py episode add --role user --content "今天妈又不理解我了" --emotion sad
+
+# 4. 检索相关记忆
+python scripts/memory/cli.py context "今天和妈妈吵架了"
+
+# 5. 统计
+python scripts/memory/cli.py stats
+
+# 6. 自动清理（>90天 且 importance<0.3）
+python scripts/memory/cli.py cleanup
+```
+
+### 13.5 与 v3.0 LLM 集成
+
+在 Agent 调用 LLM 之前，**先注入记忆**：
+
+```python
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path("scripts").resolve()))
+
+from llm_router import LLMRouter
+from memory import MemoryStore, MemoryRetriever
+from memory.embedder import create_embedder
+
+router = LLMRouter.from_config("config/llm.yaml")
+store = MemoryStore("data/memory.db", create_embedder(backend="auto"))
+retriever = MemoryRetriever(store)
+
+user_input = "今天妈又不理解我了"
+
+# 1) 检索相关记忆
+memory_context = retriever.build_context(user_input)
+
+# 2) 拼到 system prompt
+system = "你是菲菲。\n\n" + memory_context
+
+# 3) 调用 LLM
+resp = router.chat(
+    messages=[{"role": "user", "content": user_input}],
+    system=system,
+    backend="anthropic",
+)
+print(resp.text)
+
+# 4) 把这一轮存进记忆
+store.add_episode("user", user_input, emotion="sad")
+store.add_episode("assistant", resp.text)
+```
+
+### 13.6 自动遗忘机制
+
+`MemoryStore.cleanup()` 行为：
+- 删除条件：`importance < 阈值 AND (last_accessed > N 天 OR 从未访问) AND created_at > N 天`
+- 默认：90 天未访问 + importance < 0.3 → 删除
+- 高 importance（≥ 0.5）永远保留
+- 用户明确说的 fact（source=user_explicit）即使 importance 低也不删
+
+**为什么需要遗忘**：
+- 防止 prompt 无限膨胀（LLM 上下文窗口有限）
+- 降低 token 成本
+- 保留高质量记忆，丢弃噪声
+
+### 13.7 触发词扩展
+
+| 触发词 | 动作 |
+|--------|------|
+| "记住 X" / "记下来" | `store.add_fact(...)` |
+| "别忘 X" | 同上 |
+| "你记得 X 吗" | `retriever.search_episodes(X)` |
+| "你了解我吗" | `retriever.get_facts()` → 拼到回复 |
+| "忘掉 X" / "清空记忆" | `store.delete_fact(...)` 或 cleanup |
+| "关于我" | 输出所有 facts |
+| "我的生日" | `store.get_fact("personal", "birthday")` |
+
+### 13.8 设计原则
+
+1. **零外部服务依赖**（Ollama 是可选，本地优先）— 用 HashEmbedder 降级
+2. **重要性可解释**：启发式评分（情绪 + 关键词 + 长度），不是黑盒
+3. **可遗忘**：避免无限增长，主动清理
+4. **可观测**：`stats()` + `cleanup()` + `touch_episode()`（访问热度）
+5. **与 LLM 解耦**：纯 Python 库，OpenClaw 任何 Agent 都能调用
+
+### 13.9 测试
+
+```bash
+cd C:\Users\TIAN\soul-companion
+python scripts/memory/test_memory.py
+```
+
+**17 个测试覆盖**：
+- fact CRUD（4）
+- episode CRUD + importance 启发式（4）
+- 检索 + 上下文拼装（5）
+- 自动 cleanup + 统计（2）
+- CLI 子命令（2）
+
+### 13.10 后续版本预告
+
+- **v3.2** 多 TTS 引擎（GPT-SoVITS/FishSpeech/CosyVoice）+ ASR（Whisper/FunASR）
+- **v3.3** Function calling 工具框架
+
+---
+
+## 十四、版本历史（v3.1 更新）
+
+| 版本 | 发布日期 | 主要更新 |
+|------|----------|---------|
+| v1.0.0 | 2025-12 | 初始版本（4 种基础模式）|
+| v2.0.0 | 2026-03 | 扩展至 8 种模式，引入情感分级协议、主动关怀、边界管理 |
+| v2.1.0 | 2026-04 | 重画 AI 绘图 + v2.0 功能全量合并 |
+| v2.2.0 | 2026-05 | 菲菲语音 TTS（微软 Edge TTS，4 种配置）|
+| v3.0.0 | 2026-06-16 | 多 LLM 后端路由（5 种协议、16 个预设、25 单元测试）|
+| **v3.1.0** | **2026-06-16** | **长期记忆（SQLite + FAISS + 17 单元测试 + 自动遗忘）** |

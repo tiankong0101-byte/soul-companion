@@ -1,0 +1,14 @@
+# soul-companion v3.1 Python 依赖
+# 安装：pip install -r scripts/memory/requirements-v3.1.txt
+#
+# 必须：
+requests>=2.31.0
+PyYAML>=6.0
+numpy>=1.24
+
+# 推荐（向量索引加速）：
+faiss-cpu>=1.7.4
+
+# 可选（更好的 embedding）：
+# sentence-transformers>=2.2
+# 如果用 ollama，本地启动 ollama + ollama pull nomic-embed-text

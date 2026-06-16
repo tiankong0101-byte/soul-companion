@@ -2,6 +2,54 @@
 
 所有版本变更记录于此。格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+# Changelog - soul-companion
+
+所有版本变更记录于此。格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
+
+## [3.1.0] - 2026-06-16 - Open-LLM-VTuber 迁移 - Phase 2: 长期记忆
+
+### 新增 ✨
+- **双层记忆架构** `scripts/memory/`
+  - SQLite 存结构化事实（facts）：用户画像、偏好、重要日期、关系
+  - FAISS 存语义向量（episodes）：对话片段、情绪、重要性
+  - 重要性自动评估：情绪强度 + 关键词 + 长度启发式
+  - 自动遗忘：cleanup() 删除低重要性 + 长时间未访问的记录
+  - 可访问热度：touch_episode() 跟踪最近调用频率
+- **3 种 Embedding 后端** `scripts/memory/embedder.py`
+  - OllamaEmbedder（本地 nomic-embed-text，推荐）
+  - OpenAICompatEmbedder（text-embedding-3-small 等）
+  - HashEmbedder（无外部依赖降级）
+  - create_embedder(backend="auto") 按 ollama → openai → hash 顺序探测
+- **VectorIndex** `scripts/memory/vector_index.py`
+  - FAISS 索引 + 自动 numpy fallback
+  - 持久化到 SQLite 的 BLOB 字段
+- **MemoryRetriever** `scripts/memory/retrieve.py`
+  - build_context(query) 一站式生成 LLM prompt 片段
+  - 自动拼装 facts + 相关 episodes + 情绪标签
+- **CLI 工具** `scripts/memory/cli.py`
+  - fact add/list/get/delete
+  - episode add/list/search
+  - context <query>
+  - stats / cleanup
+- **17 个单元测试** 全部通过
+  - 4 facts CRUD + 4 episodes CRUD + 5 retrieval + 2 cleanup/stats + 2 CLI
+- **配置文件** `scripts/memory/config.yaml`
+- **SKILL.md 第十三节 + 12 个新触发词**（记住/你记得/我的生日 等）
+- **依赖** `scripts/memory/requirements-v3.1.txt`（faiss-cpu + numpy）
+
+### 与 v3.0 集成
+v3.0 LLM 路由 + v3.1 记忆 = 完整 RAG 流水线：
+
+```python
+memory_context = retriever.build_context(user_input)
+system = "你是菲菲。\n\n" + memory_context
+resp = router.chat(messages, system=system, backend="anthropic")
+store.add_episode("user", user_input, emotion="sad")
+store.add_episode("assistant", resp.text)
+```
+
+---
+
 ## [3.0.0] - 2026-06-16 - Open-LLM-VTuber 迁移 - Phase 1: 多 LLM 后端路由
 
 ### 新增 ✨
