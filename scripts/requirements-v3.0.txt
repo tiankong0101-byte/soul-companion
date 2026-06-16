@@ -1,0 +1,11 @@
+# soul-companion v3.0 Python 依赖
+# 安装：pip install -r scripts/requirements-v3.0.txt
+#
+# 必须：
+requests>=2.31.0
+PyYAML>=6.0
+
+# 可选 / 推荐：
+# pytest>=7.0         # 运行测试套件
+# httpx>=0.25         # 备用 HTTP 客户端
+# rich>=13.0          # CLI 美化输出

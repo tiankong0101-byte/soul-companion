@@ -1,4 +1,9 @@
-# Soul Companion - Emotional Companion for OpenClaw
+# Soul Companion
+
+> 🎉 **v3.0.0 已发布（2026-06-16）** — 引入**多 LLM 后端路由**！支持 Claude / GPT-4o / DeepSeek / Gemini / Ollama 等 16 个预设，一键切换。详见 [CHANGELOG.md](CHANGELOG.md) 和 [docs/v3.0-llm.md](docs/v3.0-llm.md)。
+> 📋 **路线图**：v3.0 多 LLM ✅ → v3.1 长期记忆 🚧 → v3.2 多 TTS+ASR 📋 → v3.3 工具调用 📋
+
+ - Emotional Companion for OpenClaw
 
 A warm and caring emotional companion skill that makes OpenClaw interactions more heartfelt and supportive.
 
@@ -77,3 +82,61 @@ MIT License - Feel free to use and modify!
 ## Author
 
 TianGe - Created with love for the OpenClaw community
+
+
+---
+
+## 🚀 v3.0 快速开始
+
+```bash
+# 1. 克隆
+git clone https://github.com/tiankong0101-byte/soul-companion.git
+cd soul-companion
+
+# 2. 安装依赖
+pip install -r scripts/requirements-v3.0.txt
+
+# 3. 设置至少一个 API key
+export ANTHROPIC_API_KEY=sk-ant-xxx    # 或 OPENAI_API_KEY / DEEPSEEK_API_KEY 等
+
+# 4. 列出后端
+python scripts/llm_router.py list
+
+# 5. 测试对话
+python scripts/llm_router.py chat --backend anthropic --message "你好，菲菲"
+```
+
+## 📚 文档
+
+- [SKILL.md](SKILL.md) — 技能定义（人格 + 8 模式 + 情感协议 + LLM 触发词）
+- [CHANGELOG.md](CHANGELOG.md) — 版本日志
+- [docs/v3.0-llm.md](docs/v3.0-llm.md) — v3.0 LLM 路由详细文档
+- [BOOT.md](BOOT.md) — 启动说明
+- [MEMORY.md](MEMORY.md) — 记忆系统
+- [AGENTS.md](AGENTS.md) — Agent 描述
+
+## 🗂️ 目录结构
+
+```
+soul-companion/
+├── SKILL.md                    # 技能主体
+├── _meta.json                  # 元数据
+├── README.md                   # 本文件
+├── BOOT.md                     # 启动文档
+├── MEMORY.md                   # 记忆
+├── AGENTS.md                   # Agent 描述
+├── CHANGELOG.md                # 版本日志
+├── config/
+│   └── llm.yaml                # v3.0 LLM 多后端配置
+├── docs/
+│   └── v3.0-llm.md             # v3.0 详细文档
+├── scripts/
+│   ├── llm_router.py           # v3.0 统一路由
+│   ├── llm_backends.py         # v3.0 5 种后端实现
+│   ├── test_llm_router.py      # 25 个单元测试
+│   ├── requirements-v3.0.txt   # v3.0 依赖
+│   ├── feifei-tts.py           # v2.2 Edge TTS
+│   └── feifei-tts.ps1          # TTS 包装
+└── references/
+    └── ...
+```
