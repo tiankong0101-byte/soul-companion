@@ -6,11 +6,11 @@ name: soul-companion
 
 
 
-description: "温馨情感陪伴技能 - 让OpenClaw拥有更温柔、更贴心的互动风格，提供情感支持和陪伴。支持菲菲语音（TTS）开口说话、多 LLM 后端切换（v3.0）、长期记忆（v3.1）、多 TTS+ASR（v3.2）、工具调用（v3.3）。"
+description: "温馨情感陪伴技能 - 让OpenClaw拥有更温柔、更贴心的互动风格，提供情感支持和陪伴。支持菲菲语音（TTS）、多LLM后端切换、长期记忆、多TTS+ASR、工具调用（v5.1: 10种工具含AnySearch搜索、URL摘要、每日简报、AI音乐生成）。"
 
 
 
-version: 3.0.0
+version: 5.1.0
 
 
 
