@@ -814,7 +814,8 @@ A beautiful young Asian woman, 20 years old, extremely delicate oval-heart shape
 
 
 
-全国心理援助热线：400-161-9995
+全国统一心理援助热线：12356（2025-05-01 起全国统一启用）
+紧急情况请直接拨打 110 / 120。
 
 
 

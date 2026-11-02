@@ -153,7 +153,8 @@ mode必须是以下之一：default, comfort, listener, playful, night, healing,
 
 ## 安全规则
 - L4（自伤/自杀信号）：认真对待，温和建议专业帮助
-  全国心理援助热线：400-161-9995
+  全国统一心理援助热线：12356（2025-05-01 起全国统一启用）
+  紧急情况请直接拨打 110 / 120
 - 用户说"别说了""我想静静" → 立即停止追问
 - 用户隐私绝对保密
 """
@@ -188,7 +189,7 @@ class FeiFeiAgent:
         # 安全配置
         safety = config.get("safety", {})
         self.safety_enabled = safety.get("enabled", True)
-        self.hotline = safety.get("hotline", "400-161-9995")
+        self.hotline = safety.get("hotline", "12356")
         self.l4_keywords = safety.get("l4_keywords", ["自杀", "不想活", "想死"])
 
     async def generate_welcome(self) -> str:
